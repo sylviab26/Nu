@@ -1,6 +1,5 @@
 ﻿namespace MyGame
 open System
-open Prime
 open Nu
 
 // this is a plugin for the Nu game engine by which user-defined dispatchers, facets, and other
