@@ -2,7 +2,7 @@ module Assets
 
 open Nu
 
-let Tiles32Package = "Tiles32"
+let Tiles32Package = "Tiles"
 
 let Human1LeftIdle = AssetTag.make<Image> Tiles32Package "tile_0023"
 let Human1DownIdle = AssetTag.make<Image> Tiles32Package "tile_0024"
