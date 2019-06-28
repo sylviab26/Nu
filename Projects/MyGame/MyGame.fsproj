@@ -71,6 +71,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="MyGameAssets.fs" />
+    <Compile Include="MyGameDispatchers.fs" />
     <Compile Include="MyGameDispatcher.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />

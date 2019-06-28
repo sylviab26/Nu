@@ -10,6 +10,15 @@ type MyGamePlugin () =
     // make our game-specific game dispatcher...
     override this.MakeGameDispatchers () =
         [MyGameDispatcher () :> GameDispatcher]
+        
+    override this.MakeScreenDispatchers () =
+        [MainScreenDispatcher () :> ScreenDispatcher]
+        
+    override this.MakeLayerDispatchers () =
+        [MainLayerDispatcher () :> LayerDispatcher]
+        
+    override this.MakeEntityDispatchers () =
+        [PlayerEntityDispatcher () :> EntityDispatcher]
 
     // specify the above game dispatcher to use
     override this.GetStandAloneGameDispatcherName () =
