@@ -31,6 +31,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "InfinityRpg", "Projects\Inf
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Nelmish", "Projects\Nelmish\Nelmish.fsproj", "{6C1968A2-094C-4BD5-B779-B150FC969DB6}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MyGame", "Projects\MyGame\MyGame.fsproj", "{CC0BF4ED-20EF-4D9A-A9CF-C30413DA4F83}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,10 @@ Global
 		{6C1968A2-094C-4BD5-B779-B150FC969DB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C1968A2-094C-4BD5-B779-B150FC969DB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C1968A2-094C-4BD5-B779-B150FC969DB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC0BF4ED-20EF-4D9A-A9CF-C30413DA4F83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC0BF4ED-20EF-4D9A-A9CF-C30413DA4F83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC0BF4ED-20EF-4D9A-A9CF-C30413DA4F83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC0BF4ED-20EF-4D9A-A9CF-C30413DA4F83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
