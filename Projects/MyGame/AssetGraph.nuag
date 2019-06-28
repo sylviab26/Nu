@@ -6,4 +6,6 @@
    [Assets Assets/Default png [Render] []]
    [Assets Assets/Default wav [Audio] []]
    [Assets Assets/Default ogg [Audio] []]
-   [Assets Assets/Default tmx [] []]]]]
+   [Assets Assets/Default tmx [] []]]]
+ [Tiles
+  [[Assets Assets/Tiles32 png [Render] []]]]]
