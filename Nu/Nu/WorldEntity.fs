@@ -21,6 +21,9 @@ module WorldEntityModule =
         member this.Name = Lens.makeReadOnly Property? Name this.GetName this
         member this.GetDispatcher world = World.getEntityDispatcher this world
         member this.Dispatcher = Lens.makeReadOnly Property? Dispatcher this.GetDispatcher this
+        member this.GetImperative world = World.getEntityImperative this world
+        member this.SetImperative value world = World.setEntityImperative value this world
+        member this.Imperative = Lens.make Property? Imperative this.GetImperative this.SetImperative this
         member this.GetPersistent world = World.getEntityPersistent this world
         member this.SetPersistent value world = World.setEntityPersistent value this world
         member this.Persistent = Lens.make Property? Persistent this.GetPersistent this.SetPersistent this
@@ -28,8 +31,6 @@ module WorldEntityModule =
         member this.CreationTimeStamp = Lens.makeReadOnly Property? CreationTimeStamp this.GetCreationTimeStamp this
         member this.GetCacheable world = World.getEntityCachable this world
         member this.Cacheable = Lens.makeReadOnly Property? Cacheable this.GetCacheable this
-        member this.GetImperative world = World.getEntityImperative this world
-        member this.Imperative = Lens.makeReadOnly Property? Imperative this.GetImperative this
         member this.GetOverlayNameOpt world = World.getEntityOverlayNameOpt this world
         member this.OverlayNameOpt = Lens.makeReadOnly Property? OverlayNameOpt this.GetOverlayNameOpt this
         member this.GetPosition world = World.getEntityPosition this world
@@ -253,10 +254,7 @@ module WorldEntityModule =
         /// Destroy an entity in the world at the end of the current update.
         [<FunctionBinding>]
         static member destroyEntity entity world =
-            let tasklet =
-                { ScheduledTime = World.getTickTime world
-                  Command = { Execute = fun world -> World.destroyEntityImmediate entity world }}
-            World.addTasklet tasklet world
+            World.schedule2 (World.destroyEntityImmediate entity) world
 
         /// Destroy multiple entities in the world immediately. Can be dangerous if existing in-flight publishing
         /// depends on any of the entities' existences. Consider using World.destroyEntities instead.
@@ -269,10 +267,7 @@ module WorldEntityModule =
         /// Destroy multiple entities in the world at the end of the current update.
         [<FunctionBinding>]
         static member destroyEntities entities world =
-            let tasklet =
-                { ScheduledTime = World.getTickTime world
-                  Command = { Execute = fun world -> World.destroyEntitiesImmediate entities world }}
-            World.addTasklet tasklet world
+            World.schedule2 (World.destroyEntitiesImmediate entities) world
 
         /// Sort the given entities.
         static member sortEntities entities world =

@@ -81,4 +81,114 @@ module KeyboardState =
     let isShiftDown () =
         isKeyDown (int SDL.SDL_Scancode.SDL_SCANCODE_LSHIFT) ||
         isKeyDown (int SDL.SDL_Scancode.SDL_SCANCODE_RSHIFT)
-        
+
+/// Describes a gamepad direction.
+type [<Struct>] GamepadDirection =
+    | DirectionUp
+    | DirectionUpLeft
+    | DirectionLeft
+    | DirectionDownLeft
+    | DirectionDown
+    | DirectionDownRight
+    | DirectionRight
+    | DirectionUpRight
+    | DirectionCentered
+
+/// Describes a gamepad button.
+type [<Struct>] GamepadButton =
+    | ButtonA
+    | ButtonB
+    | ButtonX
+    | ButtonY
+    | ButtonL
+    | ButtonR
+    | ButtonSelect
+    | ButtonStart
+
+[<RequireQualifiedAccess>]        
+module GamepadState =
+
+    let mutable private Joysticks = [||]
+
+    let isSdlButtonSupported button =
+        button < 8
+
+    /// Initialize gamepad state.
+    let init () =
+        let indices = SDL.SDL_NumJoysticks ()
+        Joysticks <-
+            Array.map (fun joystick ->
+                // NOTE: we don't have a match call to SDL.SDL_JoystickClose, but it may not be necessary
+                SDL.SDL_JoystickOpen joystick)
+                [|0 .. indices|]
+
+    /// Get the number of open gamepad.
+    let getGamepadCount () =
+        Array.length Joysticks
+
+    /// Convert a GamepadButton to SDL's representation.
+    let toSdlButton gamepadButton =
+        match gamepadButton with
+        | ButtonA -> 0
+        | ButtonB -> 1
+        | ButtonX -> 2
+        | ButtonY -> 3
+        | ButtonL -> 4
+        | ButtonR -> 5
+        | ButtonSelect -> 6
+        | ButtonStart -> 7
+
+    /// Convert SDL's representation of a joystick button to a GamepadButton.
+    let toNuButton gamepadButton =
+        match gamepadButton with
+        | 0 -> ButtonA
+        | 1 -> ButtonB
+        | 2 -> ButtonX
+        | 3 -> ButtonY
+        | 4 -> ButtonL
+        | 5 -> ButtonR
+        | 6 -> ButtonSelect
+        | 7 -> ButtonStart
+        | _ -> failwith "Invalid SDL joystick button."
+
+    /// Convert a GamepadDirection to SDL's representation.
+    let toSdlDirection gamepadDirection =
+        match gamepadDirection with
+        | DirectionUp -> SDL.SDL_HAT_UP
+        | DirectionUpLeft -> SDL.SDL_HAT_LEFTUP
+        | DirectionLeft -> SDL.SDL_HAT_LEFT
+        | DirectionDownLeft -> SDL.SDL_HAT_LEFTDOWN
+        | DirectionDown -> SDL.SDL_HAT_DOWN
+        | DirectionDownRight -> SDL.SDL_HAT_RIGHTDOWN
+        | DirectionRight -> SDL.SDL_HAT_RIGHT
+        | DirectionUpRight -> SDL.SDL_HAT_RIGHTUP
+        | DirectionCentered -> SDL.SDL_HAT_CENTERED
+
+    /// Convert SDL's representation of a hat direction to a GamepadDirection.
+    let toNuDirection gamepadDirection =
+        match gamepadDirection with
+        | SDL.SDL_HAT_UP -> DirectionUp
+        | SDL.SDL_HAT_LEFTUP -> DirectionUpLeft
+        | SDL.SDL_HAT_LEFT -> DirectionLeft
+        | SDL.SDL_HAT_LEFTDOWN -> DirectionDownLeft
+        | SDL.SDL_HAT_DOWN -> DirectionDown
+        | SDL.SDL_HAT_RIGHTDOWN -> DirectionDownRight
+        | SDL.SDL_HAT_RIGHT -> DirectionRight
+        | SDL.SDL_HAT_RIGHTUP -> DirectionUpRight
+        | SDL.SDL_HAT_CENTERED -> DirectionCentered
+        | _ -> failwith "Invalid SDL hat direction."
+
+    /// Check that the given gamepad button is down.
+    let getDirection index =
+        match Array.tryItem index Joysticks with
+        | Some joystick ->
+            let hat = SDL.SDL_JoystickGetHat (joystick, 0)
+            toNuDirection hat
+        | None -> DirectionCentered
+
+    /// Check that the given gamepad button is down.
+    let isButtonDown index button =
+        let sdlButton = toSdlButton button
+        match Array.tryItem index Joysticks with
+        | Some joystick -> SDL.SDL_JoystickGetButton (joystick, sdlButton) = byte 1
+        | None -> false

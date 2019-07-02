@@ -129,9 +129,9 @@ module EffectFacetModule =
         member this.GetEffectHistoryMax world : int = this.Get Property? EffectHistoryMax world
         member this.SetEffectHistoryMax (value : int) world = this.SetFast Property? EffectHistoryMax false false value world
         member this.EffectHistoryMax = Lens.make Property? EffectHistoryMax this.GetEffectHistoryMax this.SetEffectHistoryMax this
-        member this.GetEffectHistory world : Effects.Slice Deque = this.Get Property? EffectHistory world
+        // NOTE: this line of code horks autocomplete as discussed here - https://github.com/dotnet/fsharp/issues/7073 - member this.GetEffectHistory world : Effects.Slice Deque = this.Get Property? EffectHistory world
         member private this.SetEffectHistory (value : Effects.Slice Deque) world = this.SetFast Property? EffectHistory false true value world
-        member this.EffectHistory = Lens.makeReadOnly Property? EffectHistory this.GetEffectHistory this
+        member this.EffectHistory = Lens.makeReadOnly Property? EffectHistory (this.Get Property? EffectHistory) this
         
         /// The start time of the effect, or zero if none.
         member this.GetEffectStartTime world =
@@ -199,7 +199,7 @@ module EffectFacetModule =
                       Effects.Color = Vector4.One
                       Effects.Enabled = true
                       Effects.Volume = 1.0f }
-                let effectHistory = entity.GetEffectHistory world
+                let effectHistory = entity.EffectHistory.Get world
                 let effectEnv = entity.GetEffectDefinitions world
                 let effectSystem = EffectSystem.make effectViewType effectHistory effectTime effectEnv
 
@@ -314,40 +314,28 @@ module ScriptFacetModule =
              define Entity.OnSignal Scripting.Unit]
 
         override facet.Register (entity, world) =
-            let world =
-                match entity.GetOnRegister world with
-                | Scripting.Unit -> world // OPTIMIZATION: don't bother evaluating unit
-                | handler -> World.evalWithLogging handler (entity.GetScriptFrame world) entity world |> snd'
+            let world = World.evalWithLogging (entity.GetOnRegister world) (entity.GetScriptFrame world) entity world |> snd'
             let world = World.monitor handleScriptChanged (entity.GetChangeEvent Property? Script) entity world
             let world = World.monitor handleOnRegisterChanged (entity.GetChangeEvent Property? OnRegister) entity world
             world
 
         override facet.Unregister (entity, world) =
-            match entity.GetOnUnregister world with
-            | Scripting.Unit -> world // OPTIMIZATION: don't bother evaluating unit
-            | handler -> World.evalWithLogging handler (entity.GetScriptFrame world) entity world |> snd'
+            World.evalWithLogging (entity.GetOnUnregister world) (entity.GetScriptFrame world) entity world |> snd'
 
         override facet.Update (entity, world) =
-            match entity.GetOnUpdate world with
-            | Scripting.Unit -> world // OPTIMIZATION: don't bother evaluating unit
-            | handler -> World.evalWithLogging handler (entity.GetScriptFrame world) entity world |> snd'
+            World.evalWithLogging (entity.GetOnUpdate world) (entity.GetScriptFrame world) entity world |> snd'
 
         override facet.PostUpdate (entity, world) =
-            match entity.GetOnPostUpdate world with
-            | Scripting.Unit -> world // OPTIMIZATION: don't bother evaluating unit
-            | handler -> World.evalWithLogging handler (entity.GetScriptFrame world) entity world |> snd'
+            World.evalWithLogging (entity.GetOnPostUpdate world) (entity.GetScriptFrame world) entity world |> snd'
 
         override facet.Signal (signal, entity, world) =
-            match entity.GetOnSignal world with
-            | Scripting.Unit -> world // OPTIMIZATION: don't bother evaluating unit
-            | handler ->
-                match ScriptingSystem.tryImport typeof<Symbol> signal world with
-                | Some signalExpr ->
-                    ScriptingSystem.addProceduralBindings (Scripting.AddToNewFrame 1) (seq { yield struct ("signal", signalExpr) }) world
-                    let world = World.evalWithLogging handler (entity.GetScriptFrame world) entity world |> snd'
-                    ScriptingSystem.removeProceduralBindings world
-                    world
-                | None -> failwithumf ()
+            match ScriptingSystem.tryImport typeof<Symbol> signal world with
+            | Some signalExpr ->
+                ScriptingSystem.addProceduralBindings (Scripting.AddToNewFrame 1) (seq { yield struct ("signal", signalExpr) }) world
+                let world = World.evalWithLogging (entity.GetOnSignal world) (entity.GetScriptFrame world) entity world |> snd'
+                ScriptingSystem.removeProceduralBindings world
+                world
+            | None -> failwithumf ()
 
 [<AutoOpen>]
 module TextFacetModule =
@@ -381,7 +369,8 @@ module TextFacetModule =
              define Entity.Color (Vector4 (0.0f, 0.0f, 0.0f, 1.0f))]
 
         override facet.Actualize (text, world) =
-            if text.GetVisibleLayered world then
+            let textStr = text.GetText world
+            if text.GetVisibleLayered world && not (String.IsNullOrWhiteSpace textStr) then
                 World.enqueueRenderMessage
                     (RenderDescriptorsMessage
                         [|LayerableDescriptor
@@ -389,7 +378,7 @@ module TextFacetModule =
                               PositionY = (text.GetPosition world).Y
                               LayeredDescriptor =
                                 TextDescriptor
-                                    { Text = text.GetText world
+                                    { Text = textStr
                                       Position = text.GetPosition world + text.GetMargins world
                                       Size = text.GetSize world - text.GetMargins world * 2.0f
                                       ViewType = Absolute
@@ -470,13 +459,13 @@ module RigidBodyFacetModule =
              define Entity.BodyType Dynamic
              define Entity.Awake true
              define Entity.Density Constants.Physics.NormalDensity
-             define Entity.Friction 0.0f
+             define Entity.Friction 0.2f
              define Entity.Restitution 0.0f
              define Entity.FixedRotation false
              define Entity.AngularVelocity 0.0f
-             define Entity.AngularDamping 1.0f
+             define Entity.AngularDamping 0.0f
              define Entity.LinearVelocity Vector2.Zero
-             define Entity.LinearDamping 1.0f
+             define Entity.LinearDamping 0.0f
              define Entity.GravityScale 1.0f
              define Entity.CollisionCategories "1"
              define Entity.CollisionMask "@"
@@ -730,7 +719,7 @@ module StaticSpriteFacetModule =
             else world
 
         override facet.GetQuickSize (entity, world) =
-            match Metadata.tryGetTextureSizeAsVector2 (entity.GetStaticImage world) (World.getMetadata world) with
+            match Metadata.tryGetTextureSizeF (entity.GetStaticImage world) (World.getMetadata world) with
             | Some size -> size
             | None -> Constants.Engine.DefaultEntitySize
 
@@ -748,9 +737,9 @@ module AnimatedSpriteFacetModule =
         member this.GetCelCount world : int = this.Get Property? CelCount world
         member this.SetCelCount (value : int) world = this.SetFast Property? CelCount false false value world
         member this.CelCount = Lens.make Property? CelCount this.GetCelCount this.SetCelCount this
-        member this.GetAnimationStutter world : int64 = this.Get Property? AnimationStutter world
-        member this.SetAnimationStutter (value : int64) world = this.SetFast Property? AnimationStutter false false value world
-        member this.AnimationStutter = Lens.make Property? AnimationStutter this.GetAnimationStutter this.SetAnimationStutter this
+        member this.GetAnimationDelay world : int64 = this.Get Property? AnimationDelay world
+        member this.SetAnimationDelay (value : int64) world = this.SetFast Property? AnimationDelay false false value world
+        member this.AnimationDelay = Lens.make Property? AnimationDelay this.GetAnimationDelay this.SetAnimationDelay this
         member this.GetAnimationSheet world : Image AssetTag = this.Get Property? AnimationSheet world
         member this.SetAnimationSheet (value : Image AssetTag) world = this.SetFast Property? AnimationSheet false false value world
         member this.AnimationSheet = Lens.make Property? AnimationSheet this.GetAnimationSheet this.SetAnimationSheet this
@@ -762,7 +751,7 @@ module AnimatedSpriteFacetModule =
             let celCount = entity.GetCelCount world
             let celRun = entity.GetCelRun world
             if celCount <> 0 && celRun <> 0 then
-                let cel = int (World.getTickTime world / entity.GetAnimationStutter world) % celCount
+                let cel = int (World.getTickTime world / entity.GetAnimationDelay world) % celCount
                 let celSize = entity.GetCelSize world
                 let celI = cel % celRun
                 let celJ = cel / celRun
@@ -776,7 +765,7 @@ module AnimatedSpriteFacetModule =
             [define Entity.CelCount 16 
              define Entity.CelSize (Vector2 (16.0f, 16.0f))
              define Entity.CelRun 4
-             define Entity.AnimationStutter 4L
+             define Entity.AnimationDelay 4L
              define Entity.AnimationSheet (AssetTag.make<Image> Assets.DefaultPackage "Image7")]
 
         override facet.Actualize (entity, world) =
@@ -878,17 +867,6 @@ module EntityDispatcherModule =
         default this.View (_, _, _) = []
 
 [<AutoOpen>]
-module ImperativeDispatcherModule =
-
-    type ImperativeDispatcher () =
-        inherit EntityDispatcher ()
-        interface Imperative
-
-    type [<AbstractClass>] ImperativeDispatcher<'model, 'message, 'command> (model) =
-        inherit EntityDispatcher<'model, 'message, 'command> (model)
-        interface Imperative
-
-[<AutoOpen>]
 module EffectDispatcherModule =
 
     type EffectDispatcher () =
@@ -976,8 +954,6 @@ module GuiDispatcherModule =
                     else Cascade
                 else Cascade
             (handling, world)
-
-        interface Imperative
 
         static member FacetNames =
             [typeof<NodeFacet>.Name
@@ -1101,7 +1077,7 @@ module ButtonDispatcherModule =
             else world
 
         override dispatcher.GetQuickSize (button, world) =
-            match Metadata.tryGetTextureSizeAsVector2 (button.GetUpImage world) (World.getMetadata world) with
+            match Metadata.tryGetTextureSizeF (button.GetUpImage world) (World.getMetadata world) with
             | Some size -> size
             | None -> Constants.Engine.DefaultEntitySize
 
@@ -1143,7 +1119,7 @@ module LabelDispatcherModule =
             else world
 
         override dispatcher.GetQuickSize (label, world) =
-            match Metadata.tryGetTextureSizeAsVector2 (label.GetLabelImage world) (World.getMetadata world) with
+            match Metadata.tryGetTextureSizeF (label.GetLabelImage world) (World.getMetadata world) with
             | Some size -> size
             | None -> Constants.Engine.DefaultEntitySize
 
@@ -1188,7 +1164,7 @@ module TextDispatcherModule =
             else world
 
         override dispatcher.GetQuickSize (text, world) =
-            match Metadata.tryGetTextureSizeAsVector2 (text.GetBackgroundImage world) (World.getMetadata world) with
+            match Metadata.tryGetTextureSizeF (text.GetBackgroundImage world) (World.getMetadata world) with
             | Some size -> size
             | None -> Constants.Engine.DefaultEntitySize
 
@@ -1296,7 +1272,7 @@ module ToggleDispatcherModule =
             else world
 
         override dispatcher.GetQuickSize (toggle, world) =
-            match Metadata.tryGetTextureSizeAsVector2 (toggle.GetOpenImage world) (World.getMetadata world) with
+            match Metadata.tryGetTextureSizeF (toggle.GetOpenImage world) (World.getMetadata world) with
             | Some size -> size
             | None -> Constants.Engine.DefaultEntitySize
 
@@ -1439,7 +1415,7 @@ module FillBarDispatcherModule =
             else world
 
         override dispatcher.GetQuickSize (fillBar, world) =
-            match Metadata.tryGetTextureSizeAsVector2 (fillBar.GetBorderImage world) (World.getMetadata world) with
+            match Metadata.tryGetTextureSizeF (fillBar.GetBorderImage world) (World.getMetadata world) with
             | Some size -> size
             | None -> Constants.Engine.DefaultEntitySize
 
@@ -1471,37 +1447,115 @@ module BoxDispatcherModule =
             [define Entity.StaticImage (AssetTag.make<Image> Assets.DefaultPackage "Image4")]
 
 [<AutoOpen>]
-module TopViewCharacterDispatcherModule =
+module CharacterDispatcherModule =
 
-    type TopViewCharacterDispatcher () =
+    type Entity with
+        
+        member this.GetCharacterIdleLeftImage = this.Get Property? CharacterIdleLeftImage
+        member this.SetCharacterIdleLeftImage = this.Set Property? CharacterIdleLeftImage
+        member this.CharacterIdleLeftImage = Lens.make<Image AssetTag, World> Property? CharacterIdleLeftImage this.GetCharacterIdleLeftImage this.SetCharacterIdleLeftImage this
+        member this.GetCharacterIdleRightImage = this.Get Property? CharacterIdleRightImage
+        member this.SetCharacterIdleRightImage = this.Set Property? CharacterIdleRightImage
+        member this.CharacterIdleRightImage = Lens.make<Image AssetTag, World> Property? CharacterIdleRightImage this.GetCharacterIdleRightImage this.SetCharacterIdleRightImage this
+        member this.GetCharacterJumpLeftImage = this.Get Property? CharacterJumpLeftImage
+        member this.SetCharacterJumpLeftImage = this.Set Property? CharacterJumpLeftImage
+        member this.CharacterJumpLeftImage = Lens.make<Image AssetTag, World> Property? CharacterJumpLeftImage this.GetCharacterJumpLeftImage this.SetCharacterJumpLeftImage this
+        member this.GetCharacterJumpRightImage = this.Get Property? CharacterJumpRightImage
+        member this.SetCharacterJumpRightImage = this.Set Property? CharacterJumpRightImage
+        member this.CharacterJumpRightImage = Lens.make<Image AssetTag, World> Property? CharacterJumpRightImage this.GetCharacterJumpRightImage this.SetCharacterJumpRightImage this
+        member this.GetCharacterWalkLeftSheet = this.Get Property? CharacterWalkLeftSheet
+        member this.SetCharacterWalkLeftSheet = this.Set Property? CharacterWalkLeftSheet
+        member this.CharacterWalkLeftSheet = Lens.make<Image AssetTag, World> Property? CharacterWalkLeftSheet this.GetCharacterWalkLeftSheet this.SetCharacterWalkLeftSheet this
+        member this.GetCharacterWalkRightSheet = this.Get Property? CharacterWalkRightSheet
+        member this.SetCharacterWalkRightSheet = this.Set Property? CharacterWalkRightSheet
+        member this.CharacterWalkRightSheet = Lens.make<Image AssetTag, World> Property? CharacterWalkRightSheet this.GetCharacterWalkRightSheet this.SetCharacterWalkRightSheet this
+        member this.GetCharacterFacingLeft = this.Get Property? CharacterFacingLeft
+        member this.SetCharacterFacingLeft = this.Set Property? CharacterFacingLeft
+        member this.CharacterFacingLeft = Lens.make<bool, World> Property? CharacterFacingLeft this.GetCharacterFacingLeft this.SetCharacterFacingLeft this
+        
+    type CharacterDispatcher () =
         inherit EntityDispatcher ()
 
-        static member FacetNames =
-            [typeof<RigidBodyFacet>.Name
-             typeof<StaticSpriteFacet>.Name]
-
-        static member Properties =
-            [define Entity.FixedRotation true
-             define Entity.LinearDamping 10.0f
-             define Entity.GravityScale 0.0f
-             define Entity.CollisionBody (BodyCircle { Radius = 0.5f; Center = Vector2.Zero })
-             define Entity.StaticImage (AssetTag.make<Image> Assets.DefaultPackage "Image7")]
-
-[<AutoOpen>]
-module SideViewCharacterDispatcherModule =
-
-    type SideViewCharacterDispatcher () =
-        inherit EntityDispatcher ()
+        static let computeWalkCelInset (celSize : Vector2) (celRun : int) delay time =
+            let timeCompressed = time / delay
+            let frame = timeCompressed % int64 celRun
+            let i = single (frame % 3L)
+            let j = single (frame / 3L)
+            let offset = v2 (i * celSize.X) (j * celSize.Y) 
+            v4 offset.X offset.Y (offset.X + celSize.X) (offset.Y + celSize.Y)
 
         static member FacetNames =
-            [typeof<RigidBodyFacet>.Name
-             typeof<StaticSpriteFacet>.Name]
+            [typeof<RigidBodyFacet>.Name]
 
         static member Properties =
-            [define Entity.FixedRotation true
-             define Entity.LinearDamping 3.0f
-             define Entity.CollisionBody (BodyCapsule { Height = 0.5f; Radius = 0.25f; Center = Vector2.Zero })
-             define Entity.StaticImage (AssetTag.make<Image> Assets.DefaultPackage "Image6")]
+            [define Entity.AnimationDelay 6L
+             define Entity.CelSize (v2 28.0f 28.0f)
+             define Entity.CelRun 8
+             define Entity.FixedRotation true
+             define Entity.GravityScale 3.0f
+             define Entity.CollisionBody (BodyCapsule { Height = 0.5f; Radius = 0.25f; Center = v2Zero })
+             define Entity.CharacterIdleLeftImage (AssetTag.make Assets.DefaultPackage "CharacterIdleLeft")
+             define Entity.CharacterIdleRightImage (AssetTag.make Assets.DefaultPackage "CharacterIdleRight")
+             define Entity.CharacterJumpLeftImage (AssetTag.make Assets.DefaultPackage "CharacterJumpLeft")
+             define Entity.CharacterJumpRightImage (AssetTag.make Assets.DefaultPackage "CharacterJumpRight")
+             define Entity.CharacterWalkLeftSheet (AssetTag.make Assets.DefaultPackage "CharacterWalkLeft")
+             define Entity.CharacterWalkRightSheet (AssetTag.make Assets.DefaultPackage "CharacterWalkRight")
+             define Entity.CharacterFacingLeft false]
+
+        override this.Update (entity, world) =
+            // we have to a bit of hackery to remember whether the character is facing left or right
+            // when there is no velocity
+            let facingLeft = entity.GetCharacterFacingLeft world
+            let velocity = World.getBodyLinearVelocity (entity.GetPhysicsId world) world
+            if facingLeft && velocity.X > 1.0f then entity.SetCharacterFacingLeft false world
+            elif not facingLeft && velocity.X < -1.0f then entity.SetCharacterFacingLeft true world
+            else world
+
+        override this.Actualize (entity, world) =
+            if entity.GetVisibleLayered world && entity.GetInView world then
+                let time = World.getTickTime world
+                let physicsId = entity.GetPhysicsId world
+                let facingLeft = entity.GetCharacterFacingLeft world
+                let velocity = World.getBodyLinearVelocity physicsId world
+                let celSize = entity.GetCelSize world
+                let celRun = entity.GetCelRun world
+                let animationDelay = entity.GetAnimationDelay world
+                let (insetOpt, image) =
+                    if not (World.isBodyOnGround physicsId world) then
+                        let image =
+                            if facingLeft
+                            then entity.GetCharacterJumpLeftImage world
+                            else entity.GetCharacterJumpRightImage world
+                        (None, image)
+                    elif velocity.X < 5.0f && velocity.X > -5.0f then
+                        let image =
+                            if facingLeft
+                            then entity.GetCharacterIdleLeftImage world
+                            else entity.GetCharacterIdleRightImage world
+                        (None, image)
+                    elif velocity.X < 0.0f then
+                        let image = entity.GetCharacterWalkLeftSheet world
+                        (Some (computeWalkCelInset celSize celRun animationDelay time), image)
+                    else
+                        let image = entity.GetCharacterWalkRightSheet world
+                        (Some (computeWalkCelInset celSize celRun animationDelay time), image)
+                World.enqueueRenderMessage
+                    (RenderDescriptorsMessage
+                        [|LayerableDescriptor
+                            { Depth = entity.GetDepthLayered world
+                              PositionY = (entity.GetPosition world).Y
+                              LayeredDescriptor =
+                                SpriteDescriptor
+                                    { Position = entity.GetPosition world
+                                      Size = entity.GetSize world
+                                      Rotation = entity.GetRotation world
+                                      Offset = v2Zero
+                                      ViewType = entity.GetViewType world
+                                      InsetOpt = insetOpt
+                                      Image = image
+                                      Color = v4One }}|])
+                    world
+            else world
 
 [<AutoOpen>]
 module TileMapDispatcherModule =

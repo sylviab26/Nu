@@ -512,6 +512,32 @@ module WorldModule2 =
                     let world = World.publishPlus World.sortSubscriptionsByHierarchy eventData Events.KeyboardKeyUp eventTrace Default.Game true world
                     let eventTrace = EventTrace.record4 "World" "processInput" "KeyboardKeyChange" EventTrace.empty
                     World.publishPlus World.sortSubscriptionsByHierarchy eventData Events.KeyboardKeyChange eventTrace Default.Game true world
+                | SDL.SDL_EventType.SDL_JOYHATMOTION ->
+                    let index = evt.jhat.which
+                    let direction = evt.jhat.hatValue
+                    let eventData = { GamepadDirection = GamepadState.toNuDirection direction }
+                    let eventTrace = EventTrace.record4 "World" "processInput" "GamepadDirectionChange" EventTrace.empty
+                    World.publishPlus World.sortSubscriptionsByHierarchy eventData (Events.GamepadDirectionChange index) eventTrace Default.Game true world
+                | SDL.SDL_EventType.SDL_JOYBUTTONDOWN ->
+                    let index = evt.jbutton.which
+                    let button = int evt.jbutton.button
+                    if GamepadState.isSdlButtonSupported button then
+                        let eventData = { GamepadButton = GamepadState.toNuButton button; Down = true }
+                        let eventTrace = EventTrace.record4 "World" "processInput" "GamepadButtonDown" EventTrace.empty
+                        let world = World.publishPlus World.sortSubscriptionsByHierarchy eventData (Events.GamepadButtonDown index) eventTrace Default.Game true world
+                        let eventTrace = EventTrace.record4 "World" "processInput" "GamepadButtonChange" EventTrace.empty
+                        World.publishPlus World.sortSubscriptionsByHierarchy eventData (Events.GamepadButtonChange index) eventTrace Default.Game true world
+                    else world
+                | SDL.SDL_EventType.SDL_JOYBUTTONUP ->
+                    let index = evt.jbutton.which
+                    let button = int evt.jbutton.button
+                    if GamepadState.isSdlButtonSupported button then
+                        let eventData = { GamepadButton = GamepadState.toNuButton button; Down = true }
+                        let eventTrace = EventTrace.record4 "World" "processInput" "GamepadButtonUp" EventTrace.empty
+                        let world = World.publishPlus World.sortSubscriptionsByHierarchy eventData (Events.GamepadButtonUp index) eventTrace Default.Game true world
+                        let eventTrace = EventTrace.record4 "World" "processInput" "GamepadButtonChange" EventTrace.empty
+                        World.publishPlus World.sortSubscriptionsByHierarchy eventData (Events.GamepadButtonChange index) eventTrace Default.Game true world
+                    else world
                 | _ -> world
             (World.getLiveness world, world)
 
