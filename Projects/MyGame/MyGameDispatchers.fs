@@ -6,8 +6,8 @@ open Prime
 
 #nowarn "1182"
   
-type PlayerEntityDispatcher() =
-  inherit EntityDispatcher()
+type PlayerEntityDispatcher () =
+  inherit EntityDispatcher ()
   
   static member FacetNames =
     [typeof<StaticSpriteFacet>.Name]
@@ -21,8 +21,8 @@ type PlayerEntityDispatcher() =
     
     world
     
-type MainLayerDispatcher() =
-  inherit LayerDispatcher()
+type MainLayerDispatcher () =
+  inherit LayerDispatcher ()
   
   override this.Register (layer, world) =
     let player, world = World.createEntity<PlayerEntityDispatcher> (Some "player") DefaultOverlay layer world
@@ -31,8 +31,8 @@ type MainLayerDispatcher() =
     
     world
     
-type MainScreenDispatcher() =
-  inherit ScreenDispatcher()
+type MainScreenDispatcher () =
+  inherit ScreenDispatcher ()
   
   override this.Register (screen, world) =
     let layer, world = World.createLayer<MainLayerDispatcher> (Some "main layer") screen world
