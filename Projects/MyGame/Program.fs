@@ -1,4 +1,5 @@
 ﻿namespace MyGame
+open MultiAssetAnimation
 open System
 open Nu
 
@@ -20,6 +21,9 @@ type MyGamePlugin () =
     override this.MakeEntityDispatchers () =
         [PlayerEntityDispatcher () :> EntityDispatcher
          Player2EntityDispatcher () :> EntityDispatcher]
+        
+    override this.MakeFacets () =
+        [MultiAssetAnimationFacet () :> Facet]
 
     // specify the above game dispatcher to use
     override this.GetStandAloneGameDispatcherName () =
