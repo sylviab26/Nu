@@ -2,6 +2,7 @@
 open MultiAssetAnimation
 open System
 open Nu
+open PlayerDispatcher
 
 // this is a plugin for the Nu game engine by which user-defined dispatchers, facets, and other
 // sorts of types can be obtained by both your application and Gaia.

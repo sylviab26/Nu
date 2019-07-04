@@ -10,8 +10,6 @@ open MultiAssetAnimation
 
 #nowarn "1182"
 
-type Moving = Up | Right | Down | Left | NoMove
-
 type Player2EntityDispatcher () =
   inherit EntityDispatcher ()
   
@@ -24,73 +22,103 @@ type Player2EntityDispatcher () =
   override this.Register (entity, world) =
     world
 
-type PlayerEntityDispatcher () =
-  inherit EntityDispatcher ()
-  
-  static member FacetNames =
-    [typeof<MultiAssetAnimationFacet>.Name]
+module PlayerDispatcher =
+  type Rotation = Up | Right | Down | Left | NoRotation
+  type Moving = Up | Right | Down | Left | NoMove
+
+  type Entity with
+    member this.GetFourVectorRotation = this.Get Property? FourVectorRotation
+    member this.SetFourVectorRotation = this.Set Property? FourVectorRotation
+    member this.FourVectorRotation = Lens.make<Rotation, World> Property? FourVectorRotation this.GetFourVectorRotation this.SetFourVectorRotation this
+
+  type PlayerEntityDispatcher () =
+    inherit EntityDispatcher ()
     
-  static member Properties =
-    let animationList =
-      Map.empty
-      |> Map.add "idle-up"     [Assets.Human1UpIdle]
-      |> Map.add "idle-right"  [Assets.Human1RightIdle]
-      |> Map.add "idle-down"   [Assets.Human1DownIdle]
-      |> Map.add "idle-left"   [Assets.Human1LeftIdle]
-      |> Map.add "walk-up"     [Assets.Human1UpWalk1; Assets.Human1UpWalk2]
-      |> Map.add "walk-right"  [Assets.Human1RightWalk1; Assets.Human1RightWalk2]
-      |> Map.add "walk-down"   [Assets.Human1DownWalk1; Assets.Human1DownWalk2]
-      |> Map.add "walk-left"   [Assets.Human1LeftWalk1; Assets.Human1LeftWalk2]
-      
-    [define Entity.AnimationList animationList
-     define Entity.AnimationKey "idle-down"]
-  
-  override this.Register (entity, world) =
-    let onKeyDown (e: Event<KeyboardKeyData, Entity>) (world: World) =
-      let entity = e.Subscriber
-      
+    static let onWorldUpdate (evt: Event<unit, Entity>) (world: World) =
+      let entity = evt.Subscriber
       let moving = 
-        match enum<SDL.SDL_Scancode>(e.Data.ScanCode) with
-          | SDL.SDL_Scancode.SDL_SCANCODE_D -> Right
-          | SDL.SDL_Scancode.SDL_SCANCODE_A -> Left
-          | SDL.SDL_Scancode.SDL_SCANCODE_W -> Up
-          | SDL.SDL_Scancode.SDL_SCANCODE_S -> Down
-          | _ -> NoMove
-          
+          if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_W |> int) world then Up
+          else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_D |> int) world then Right
+          else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_S |> int) world then Down
+          else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_A |> int) world then Left
+          else NoMove
+
       let animationKey = 
         match moving with
         | Up -> "walk-up"
         | Right -> "walk-right"
         | Down -> "walk-down"
         | Left -> "walk-left"
-        | NoMove -> "idle-up"
+        | NoMove ->
+          match entity.GetFourVectorRotation world with
+          | Rotation.Up -> "idle-up"
+          | Rotation.Right -> "idle-right"
+          | Rotation.Down | Rotation.NoRotation -> "idle-down"
+          | Rotation.Left -> "idle-left"
         
-      let world = entity.SetAnimationKey animationKey world
-
-      (*
-      let p = entity.GetPosition world
-      let units = 100.0f / 60.0f
-      
+      let rotation =
+        match moving with
+        | Up -> Rotation.Up
+        | Right -> Rotation.Right
+        | Down -> Rotation.Down
+        | Left -> Rotation.Left
+        | NoMove -> entity.GetFourVectorRotation world
+        
       let delta =
-        match enum<SDL.SDL_Scancode>(e.Data.ScanCode) with
-        | SDL.SDL_Scancode.SDL_SCANCODE_D -> Vector2(units, 0.0f) |> Some
-        | SDL.SDL_Scancode.SDL_SCANCODE_A -> Vector2(-units, 0.0f) |> Some
-        | SDL.SDL_Scancode.SDL_SCANCODE_W -> Vector2(0.0f, units) |> Some
-        | SDL.SDL_Scancode.SDL_SCANCODE_S -> Vector2(0.0f, -units) |> Some
-        | _ -> None
-      
-      let world =
+        match moving with
+        | Up -> Vector2(0.0f, 1.0f) |> Some
+        | Right -> Vector2(1.0f, 0.0f) |> Some
+        | Down -> Vector2(0.0f, -1.0f) |> Some
+        | Left -> Vector2(-1.0f, -0.0f) |> Some
+        | NoMove -> None
+        
+      let world =   
         match delta with
-        | Some x -> entity.SetPosition (p + x) world
+        | Some x ->
+          let units = 100.0f / 60.0f
+          let pos = entity.GetPosition world
+          
+          entity.SetPosition (pos + x * units) world
         | None -> world
-      *)
-
+        
+      let world =
+        if evt.Subscriber.GetAnimationKey world = animationKey |> not then
+          evt.Subscriber.SetAnimationKeyWithRefresh animationKey world
+        else world
+        
+      let world =
+        if entity.GetFourVectorRotation world = rotation |> not then
+          entity.SetFourVectorRotation rotation world
+        else world
+      
       world
     
-    let world = World.monitor onKeyDown Events.KeyboardKeyDown entity world
-    
-    world
-    
+    override this.Register (entity, world) =
+      let world = World.monitor onWorldUpdate Events.Update entity world
+
+      world
+
+    static member FacetNames =
+      [typeof<MultiAssetAnimationFacet>.Name]
+      
+    static member Properties =
+      let animationList =
+        Map.empty
+        |> Map.add "idle-up"     [Assets.Human1UpIdle]
+        |> Map.add "idle-right"  [Assets.Human1RightIdle]
+        |> Map.add "idle-down"   [Assets.Human1DownIdle]
+        |> Map.add "idle-left"   [Assets.Human1LeftIdle]
+        |> Map.add "walk-up"     [Assets.Human1UpWalk1; Assets.Human1UpWalk2]
+        |> Map.add "walk-right"  [Assets.Human1RightWalk1; Assets.Human1RightWalk2]
+        |> Map.add "walk-down"   [Assets.Human1DownWalk1; Assets.Human1DownWalk2]
+        |> Map.add "walk-left"   [Assets.Human1LeftWalk1; Assets.Human1LeftWalk2]
+        
+      [define Entity.AnimationList animationList
+       define Entity.AnimationKey "idle-down"
+       define Entity.FourVectorRotation NoRotation]
+
+open PlayerDispatcher
+
 type MainLayerDispatcher () =
   inherit LayerDispatcher ()
   
