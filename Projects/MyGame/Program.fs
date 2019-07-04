@@ -18,7 +18,8 @@ type MyGamePlugin () =
         [MainLayerDispatcher () :> LayerDispatcher]
         
     override this.MakeEntityDispatchers () =
-        [PlayerEntityDispatcher () :> EntityDispatcher]
+        [PlayerEntityDispatcher () :> EntityDispatcher
+         Player2EntityDispatcher () :> EntityDispatcher]
 
     // specify the above game dispatcher to use
     override this.GetStandAloneGameDispatcherName () =
