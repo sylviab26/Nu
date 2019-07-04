@@ -45,11 +45,8 @@ module MultiAssetAnimation =
         Image = img
       }
     
-    static member Properties =
-      [define Entity.AnimationBeginTick 0L]
-    
     override this.Actualize (entity, world) =
-      let frameTime = 10L // хардкод время фрейма, 1 секунда на фрейм
+      let frameTime = 10L // хардкод время фрейма, 10/60 секунды на фрейм
       let tickTime = World.getTickTime world
       
       if entity.GetInView world then
@@ -76,3 +73,6 @@ module MultiAssetAnimation =
         world
       else
         world
+    
+    static member Properties =
+      [define Entity.AnimationBeginTick 0L]
