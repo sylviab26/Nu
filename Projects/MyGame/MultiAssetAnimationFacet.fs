@@ -41,7 +41,7 @@ module MultiAssetAnimation =
         ViewType = e.GetViewType w
         Offset = Vector2.Zero
         InsetOpt = None
-        Color = Vector4.Zero
+        Color = Vector4.One
         Image = img
       }
     

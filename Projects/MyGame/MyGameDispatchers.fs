@@ -92,7 +92,7 @@ module PlayerDispatcher =
         else world
       
       world
-    
+
     override this.Register (entity, world) =
       let world = World.monitor onWorldUpdate Events.Update entity world
 
