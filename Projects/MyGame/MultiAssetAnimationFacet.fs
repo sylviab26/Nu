@@ -62,7 +62,7 @@ module MultiAssetAnimation =
           | None -> world
           | Some animations ->
             let distance = tickTime - animationBeginTick
-            let animationFrame = distance / frameTime % (animations |> List.length |> int64) |> int
+            let animationFrame = distance / frameTime % (animations |> List.length |> int64) |> int // thanks to bryanedds
             
             match animations |> List.tryItem animationFrame with
             | Some frame ->
