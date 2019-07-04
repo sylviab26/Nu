@@ -33,6 +33,18 @@ module MultiAssetAnimation =
   type MultiAssetAnimationFacet() =
     inherit Facet()
     
+    static let createSpriteDescriptorFromEntity img (e: Entity) w =
+      SpriteDescriptor {
+        Position = e.GetPosition w
+        Size = e.GetSize w
+        Rotation = e.GetRotation w
+        ViewType = e.GetViewType w
+        Offset = Vector2.Zero
+        InsetOpt = None
+        Color = Vector4.Zero
+        Image = img
+      }
+    
     static member Properties =
       [define Entity.AnimationBeginTick 0L]
     
@@ -54,21 +66,8 @@ module MultiAssetAnimation =
             
             match animations |> List.tryItem animationFrame with
             | Some frame ->
-              let sd = SpriteDescriptor {
-                Position = entity.GetPosition world
-                Size = entity.GetSize world
-                Rotation = entity.GetRotation world
-                Offset = Vector2.Zero
-                ViewType = entity.GetViewType world
-                InsetOpt = None
-                Image = frame
-                Color = Vector4.One
-              }
-              let ld = LayerableDescriptor {
-                Depth = entity.GetDepth world
-                PositionY = (entity.GetPosition world).Y
-                LayeredDescriptor = sd
-              }
+              let sd = createSpriteDescriptorFromEntity frame entity world
+              let ld = LayerableDescriptor { Depth = entity.GetDepth world; PositionY = (entity.GetPosition world).Y; LayeredDescriptor = sd }
               let renderMsg = RenderDescriptorsMessage [| ld |]
               
               World.enqueueRenderMessage renderMsg world

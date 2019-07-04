@@ -37,11 +37,11 @@ module PlayerDispatcher =
     static let onWorldUpdate (evt: Event<unit, Entity>) (world: World) =
       let entity = evt.Subscriber
       let moving = 
-          if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_W |> int) world then Up
-          else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_D |> int) world then Right
-          else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_S |> int) world then Down
-          else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_A |> int) world then Left
-          else NoMove
+        if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_W |> int) world then Up
+        else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_D |> int) world then Right
+        else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_S |> int) world then Down
+        else if World.isKeyboardKeyDown (SDL.SDL_Scancode.SDL_SCANCODE_A |> int) world then Left
+        else NoMove
 
       let animationKey = 
         match moving with
@@ -71,7 +71,7 @@ module PlayerDispatcher =
         | Down -> Vector2(0.0f, -1.0f) |> Some
         | Left -> Vector2(-1.0f, -0.0f) |> Some
         | NoMove -> None
-        
+
       let world =   
         match delta with
         | Some x ->
