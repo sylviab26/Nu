@@ -71,6 +71,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="MyGameAssets.fs" />
+    <Compile Include="Simulants.fs" />
     <Compile Include="Facets.fs" />
     <Compile Include="MultiAssetAnimationFacet.fs" />
     <Compile Include="MyGameDispatchers.fs" />
