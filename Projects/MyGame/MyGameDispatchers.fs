@@ -7,21 +7,18 @@ open OpenTK
 open Prime
 open SDL2
 open MultiAssetAnimation
+open Nu.StaticSpriteFacetModule
+open TileMap
 
 #nowarn "1182"
 
-type Player2EntityDispatcher () =
-  inherit EntityDispatcher ()
-  
-  static member FacetNames =
-    [typeof<StaticSpriteFacet>.Name]
+module StaticEntity =
+  type StaticEntityDispatcher () =
+    inherit EntityDispatcher ()
     
-  static member Properties =
-    [define Entity.StaticImage Assets.Human1DownWalk1]
+    static member FacetNames =
+      [typeof<TileMapFacet>.Name]
     
-  override this.Register (entity, world) =
-    world
-
 module PlayerDispatcher =
   type Rotation = Up | Right | Down | Left | NoRotation
   type Moving = Up | Right | Down | Left | NoMove
@@ -118,13 +115,14 @@ module PlayerDispatcher =
        define Entity.FourVectorRotation NoRotation]
 
 open PlayerDispatcher
+open StaticEntity
 
 type MainLayerDispatcher () =
   inherit LayerDispatcher ()
   
   override this.Register (layer, world) =
     let player1, world = World.createEntity<PlayerEntityDispatcher> (Some "player1") DefaultOverlay layer world
-    let player2, world = World.createEntity<Player2EntityDispatcher> (Some "player2") DefaultOverlay layer world
+    let player2, world = World.createEntity<StaticEntityDispatcher> (Some "fountain") DefaultOverlay layer world
     
     let world = player1.SetPosition (Vector2(1.0f, 1.0f)) world
     let world = player2.SetPosition (Vector2(64.0f, 64.0f)) world
