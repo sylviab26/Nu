@@ -1,5 +1,6 @@
 namespace MyGame
 
+open Assets
 open System.Reflection
 open Nu
 open Nu.Declarative
@@ -7,7 +8,6 @@ open OpenTK
 open Prime
 open SDL2
 open MultiAssetAnimation
-open Nu.StaticSpriteFacetModule
 open TileMap
 
 #nowarn "1182"
@@ -16,8 +16,27 @@ module StaticEntity =
   type StaticEntityDispatcher () =
     inherit EntityDispatcher ()
     
+    override this.Register (entity, world) =
+      world
+    
     static member FacetNames =
       [typeof<TileMapFacet>.Name]
+
+    static member Properties =
+      let tm = [
+        FountainLarge1, Vector2(0.0f, 0.0f)
+        FountainLarge2, Vector2(16.0f, 0.0f)
+        FountainLarge3, Vector2(32.0f, 0.0f)
+        FountainLarge4, Vector2(0.0f, -16.0f)
+        FountainLarge5, Vector2(16.0f, -16.0f)
+        FountainLarge6, Vector2(32.0f, -16.0f)
+        FountainLarge7, Vector2(0.0f, -32.0f)
+        FountainLarge8, Vector2(16.0f, -32.0f)
+        FountainLarge9, Vector2(32.0f, -32.0f)
+      ]
+
+      [define Entity.TileMatrix tm
+       define Entity.Size (Vector2(48.0f, 48.0f))]
     
 module PlayerDispatcher =
   type Rotation = Up | Right | Down | Left | NoRotation
@@ -110,7 +129,8 @@ module PlayerDispatcher =
         |> Map.add "walk-down"   [Assets.Human1DownWalk1; Assets.Human1DownWalk2]
         |> Map.add "walk-left"   [Assets.Human1LeftWalk1; Assets.Human1LeftWalk2]
         
-      [define Entity.AnimationList animationList
+      [define Entity.Size (Vector2(16.0f, 16.0f))
+       define Entity.AnimationList animationList
        define Entity.AnimationKey "idle-down"
        define Entity.FourVectorRotation NoRotation]
 
@@ -121,11 +141,11 @@ type MainLayerDispatcher () =
   inherit LayerDispatcher ()
   
   override this.Register (layer, world) =
-    let player1, world = World.createEntity<PlayerEntityDispatcher> (Some "player1") DefaultOverlay layer world
-    let player2, world = World.createEntity<StaticEntityDispatcher> (Some "fountain") DefaultOverlay layer world
+    let player1, world = World.createEntity<PlayerEntityDispatcher> (Some Simulants.Player.EntityName) DefaultOverlay layer world
+    let fountain, world = World.createEntity<StaticEntityDispatcher> (Some Simulants.Fountain.EntityName) DefaultOverlay layer world
     
     let world = player1.SetPosition (Vector2(1.0f, 1.0f)) world
-    let world = player2.SetPosition (Vector2(64.0f, 64.0f)) world
+    let world = fountain.SetPosition (Vector2(64.0f, 64.0f)) world
     
     world
     

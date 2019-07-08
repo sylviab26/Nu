@@ -2,8 +2,10 @@
 open MultiAssetAnimation
 open System
 open Nu
+open Nu.FacetModule
 open PlayerDispatcher
 open StaticEntity
+open TileMap
 
 // this is a plugin for the Nu game engine by which user-defined dispatchers, facets, and other
 // sorts of types can be obtained by both your application and Gaia.
@@ -25,7 +27,8 @@ type MyGamePlugin () =
          StaticEntityDispatcher () :> EntityDispatcher]
         
     override this.MakeFacets () =
-        [MultiAssetAnimationFacet () :> Facet]
+        [MultiAssetAnimationFacet () :> Facet
+         TileMapFacet () :> Facet]
 
     // specify the above game dispatcher to use
     override this.GetStandAloneGameDispatcherName () =

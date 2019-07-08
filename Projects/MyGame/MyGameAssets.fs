@@ -7,10 +7,12 @@ let Tiles32Package = "Tiles"
 
 let img x y =
   // 27, 18
-  let num = (x - 1) * 27 + y
+  let num = ((y - 1) * 27 + x) - 1
   let stringy = num |> string
   
-  AssetTag.make<Image> Tiles32Package ("tile_" + stringy.PadLeft(4, '0'))
+  let name = "tile_" + stringy.PadLeft(4, '0')
+  
+  AssetTag.make<Image> Tiles32Package name
 
 let Human1LeftIdle = AssetTag.make<Image> Tiles32Package "tile_0023"
 let Human1DownIdle = AssetTag.make<Image> Tiles32Package "tile_0024"

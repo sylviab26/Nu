@@ -53,7 +53,7 @@ module MultiAssetAnimation =
         let animationList = entity.GetAnimationList world
         let animationKey = entity.GetAnimationKey world
         let animationBeginTick = entity.GetAnimationBeginTick world
-        
+
         let world =
           match animationList |> Map.tryFind animationKey with
           | None -> world
