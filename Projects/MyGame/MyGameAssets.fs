@@ -36,5 +36,3 @@ let FountainLarge6 = img 3 2
 let FountainLarge7 = img 1 3
 let FountainLarge8 = img 2 3
 let FountainLarge9 = img 3 3
-
-
